@@ -1,34 +1,53 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
-import Card from "@/components/Card";
-import VoteList from "@/components/VoteList";
-import VoteLocationMap from "@/components/VoteLocationMap";
 
-export default function Home() {
-  // Example vote location.
-  const voteLocation = "1600 Amphitheatre Parkway, Mountain View, CA";
+export default function SignInPage() {
+  const [userId, setUserId] = useState("");
+  const [error, setError] = useState("");
+  const router = useRouter();
+
+  const handleSignIn = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId.trim()) {
+      setError("User ID is required");
+      return;
+    }
+    setError("");
+    // Navigate to a dashboard route based on userId.
+    router.push(`/${userId.trim()}`);
+  };
 
   return (
-    <div className="min-h-screen md:h-screen md:overflow-hidden flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <Navbar />
-      <div className="flex-1 p-4 md:px-10 flex flex-col gap-7">
-        <div className="flex flex-col md:flex-row gap-7 h-full">
-          <div className="flex-1 flex flex-col gap-7">
-            <div className="flex justify-center items-center">
-              <Card
-                id="12345"
-                name="John Doe"
-                image="/cat-face.jpg"
-                github="https://github.com/johndoe"
-                instagram="https://instagram.com/johndoe"
+      <div className="flex-1 flex items-center justify-center bg-gray-100">
+        <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
+          <h2 className="text-2xl font-bold mb-6 text-center">Sign In</h2>
+          <form onSubmit={handleSignIn} className="space-y-4">
+            <div>
+              <label htmlFor="userId" className="block mb-1 text-gray-700">
+                User ID
+              </label>
+              <input
+                type="text"
+                id="userId"
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring focus:ring-blue-300"
+                placeholder="Enter your user ID"
               />
             </div>
-          </div>
-          <div className="flex-1 flex justify-center items-start">
-            <VoteList />
-          </div>
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+            <button
+              type="submit"
+              className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Sign In
+            </button>
+          </form>
         </div>
       </div>
     </div>
