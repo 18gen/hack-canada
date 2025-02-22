@@ -37,14 +37,6 @@ export default function DashboardPage() {
     }
   }, [userId]);
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <h1 className="text-2xl">User not found</h1>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen md:h-screen md:overflow-hidden flex flex-col">
       <Navbar showLogout/>
@@ -53,16 +45,17 @@ export default function DashboardPage() {
           {/* Left Column: User Card */}
           <div className="flex-1 flex flex-col gap-7">
             <div className="flex justify-center items-center">
+              {user && 
               <Card
-                id={user.id}
-                name={`${user.first_name} ${user.last_name}`}
-                image="/cat-face.jpg"
-              />
+              id={user.id}
+              name={`${user.first_name} ${user.last_name}`}
+              image="/cat-face.jpg"
+            />}
             </div>
           </div>
           {/* Right Column: Vote List */}
           <div className="flex-1 flex justify-center items-start">
-            <VoteList />
+          {user ? <VoteList user_id={user.id} /> : <p>Loading votes...</p>}
           </div>
         </div>
       </div>
