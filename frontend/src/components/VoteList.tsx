@@ -1,147 +1,81 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FaSortAlphaDown,
   FaSortAlphaUp,
   FaSortNumericDown,
   FaSortNumericUp,
 } from "react-icons/fa";
-import { IoIosArrowDown } from "react-icons/io";
-import { IoIosArrowForward } from "react-icons/io";
-import VoteLocationMap from "@/components/VoteLocationMap";
+import { supabase } from "@/lib/supabase";
+import VoteListItem from "./VoteListItem";
+import { Poll } from "@/interfaces/vote";
 
-interface VoteItem {
-  id: number;
-  title: string;
-  endsAt: string;
-  location: string;
+interface VoteListProps {
+  user_id: string;
 }
 
-interface VoteListItemProps {
-  item: VoteItem;
-  expanded: boolean;
-  onToggle: () => void;
-}
-
-const VoteListItem: React.FC<VoteListItemProps> = ({
-  item,
-  expanded,
-  onToggle,
-}) => {
-  return (
-    <li
-      onClick={onToggle}
-      className="cursor-pointer px-4 py-3 bg-gray-800 rounded-lg shadow-inner transition-all"
-    >
-      <div className="flex justify-between items-center">
-        <span>{item.title}</span>
-        <span className="text-sm text-gray-300">
-          {expanded ? <IoIosArrowDown /> : <IoIosArrowForward />}
-        </span>
-      </div>
-      {expanded && (
-        <div className="mt-2 text-gray-300 text-sm">
-          <p>Ends at: {item.endsAt}</p>
-          <p>Details about {item.title} go here.</p>
-          <div className="mt-2">
-            <VoteLocationMap location={item.location} />
-          </div>
-        </div>
-      )}
-    </li>
-  );
-};
-
-const VoteList: React.FC = () => {
+const VoteList: React.FC<VoteListProps> = ({ user_id }) => {
   const [search, setSearch] = useState("");
+  const [voteItems, setVoteItems] = useState<Poll[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [expandedItem, setExpandedItem] = useState<number | null>(null);
-  const [activeSortField, setActiveSortField] = useState<"name" | "endsAt">(
-    "name",
-  );
+  const [activeSortField, setActiveSortField] = useState<"name" | "endsAt">("name");
   const [nameSortAsc, setNameSortAsc] = useState(true);
   const [dateSortAsc, setDateSortAsc] = useState(true);
 
-  // will replace with actual db
-  const voteItems: VoteItem[] = [
-    {
-      id: 1,
-      title: "Vote for Option A",
-      endsAt: "2025-01-01",
-      location: "1600 Amphitheatre Parkway, Mountain View, CA",
-    },
-    {
-      id: 2,
-      title: "Vote for Option B",
-      endsAt: "2024-12-15",
-      location: "1600 Amphitheatre Parkway, Mountain View, CA",
-    },
-    {
-      id: 3,
-      title: "Vote for Option C",
-      endsAt: "2025-02-10",
-      location: "1600 Amphitheatre Parkway, Mountain View, CA",
-    },
-    {
-      id: 4,
-      title: "Vote for Option D",
-      endsAt: "2024-11-20",
-      location: "1600 Amphitheatre Parkway, Mountain View, CA",
-    },
-    {
-      id: 5,
-      title: "Vote for Option E",
-      endsAt: "2025-03-05",
-      location: "1600 Amphitheatre Parkway, Mountain View, CA",
-    },
-    {
-      id: 6,
-      title: "Vote for Option F",
-      endsAt: "2024-12-01",
-      location: "1600 Amphitheatre Parkway, Mountain View, CA",
-    },
-    {
-      id: 7,
-      title: "Vote for Option G",
-      endsAt: "2025-01-15",
-      location: "1600 Amphitheatre Parkway, Mountain View, CA",
-    },
-    {
-      id: 8,
-      title: "Vote for Option H",
-      endsAt: "2025-04-01",
-      location: "1600 Amphitheatre Parkway, Mountain View, CA",
-    },
-    {
-      id: 9,
-      title: "Vote for Option I",
-      endsAt: "2024-10-30",
-      location: "1600 Amphitheatre Parkway, Mountain View, CA",
-    },
-    {
-      id: 10,
-      title: "Vote for Option J",
-      endsAt: "2025-02-20",
-      location: "1600 Amphitheatre Parkway, Mountain View, CA",
-    },
-    {
-      id: 11,
-      title: "Vote for Option K",
-      endsAt: "2025-03-15",
-      location: "1600 Amphitheatre Parkway, Mountain View, CA",
-    },
-    {
-      id: 12,
-      title: "Vote for Option L",
-      endsAt: "2024-09-25",
-      location: "1600 Amphitheatre Parkway, Mountain View, CA",
-    },
-  ];
+  // Fetch votes for the given user, joining with the option and related poll details.
+  useEffect(() => {
+    const fetchPolls = async () => {
+      const { data, error } = await supabase
+        .from("votes")
+        .select(`
+          options (
+            id,
+            option_text,
+            poll:poll_id (
+              id,
+              title,
+              ends_at,
+              description,
+              options:options ( id, option_text )
+            )
+          )
+        `)
+        .eq("user_id", user_id);
 
+      if (error) {
+        setError(error.message);
+      } else if (data) {
+        // Map each vote into a VoteItem using the nested poll data.
+        const polls = data.map((vote: any) => {
+          const poll = vote.options.poll;
+
+          return {
+            id: poll.id,
+            title: poll.title,
+            endsAt: poll.ends_at,
+            description: poll.description,
+            options: poll.options || [],
+            // Store the ID of the option this user voted on
+            selectedOptionId: vote.options.id,
+          };
+        });
+        setVoteItems(polls);
+      }
+      setLoading(false);
+    };
+
+    fetchPolls();
+  }, [user_id]);
+
+  // Filter by search term
   const filteredItems = voteItems.filter((item) =>
-    item.title.toLowerCase().includes(search.toLowerCase()),
+    item.title.toLowerCase().includes(search.toLowerCase())
   );
 
+  // Sort by name or end date
   const sortedItems = filteredItems.slice().sort((a, b) => {
     if (activeSortField === "name") {
       return nameSortAsc
@@ -154,8 +88,12 @@ const VoteList: React.FC = () => {
     }
   });
 
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p>Error: {error}</p>;
+
   return (
     <div className="w-full py-2 max-w-xl p-6 rounded-xl shadow-inner flex flex-col h-full">
+      {/* Search */}
       <input
         type="text"
         placeholder="Search votes..."
@@ -192,6 +130,7 @@ const VoteList: React.FC = () => {
         </button>
       </div>
 
+      {/* Poll List */}
       <div className="flex-1 overflow-y-auto max-h-[280px] sm:max-h-[400px] md:max-h-[calc(100vh-230px)]">
         <ul className="space-y-1">
           {sortedItems.map((item) => (
