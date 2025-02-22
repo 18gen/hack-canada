@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { supabase } from "@/lib/supabase";
+import CameraCapture from "@/components/CameraCapture";
 
 export default function Home() {
   const [email, setEmail] = useState("");
@@ -133,6 +134,9 @@ export default function Home() {
               {isSignUp ? "Sign Up" : "Sign In"}
             </button>
           </form>
+          <div className="w-full max-w-md p-8 rounded-lg shadow-md mt-8">
+          <CameraCapture />
+        </div>
           <p className="text-center mt-4">
             {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
             <button
