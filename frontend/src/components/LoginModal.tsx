@@ -7,10 +7,10 @@ import { UserContext } from "@/app/UserContext";
 
 interface LoginModalProps {
   onClose: () => void;
-  onLoginSuccess: (userId: string) => void;
+  // onLoginSuccess: (userId: string) => void;
 }
 
-const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
+const LoginModal: React.FC<LoginModalProps> = ({ onClose }) => {
   const { setUser } = useContext(UserContext)!;
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -92,13 +92,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLoginSuccess }) => {
 
         const result = await response.json();
         if (result.user_id) {
-          // Save the user_id in the context (and localStorage via the context effect)
           setUser(result.user_id);
-          // Signal success to parent and close the modal
-          onLoginSuccess(result.user_id);
           onClose();
-          // Optionally, redirect immediately
-          router.push(`/${result.user_id}`);
         }
       } catch (error) {
         console.error("Error:", error);
