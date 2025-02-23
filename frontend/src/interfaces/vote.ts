@@ -11,6 +11,7 @@ export interface Option {
 
 export interface Poll {
   id: number;
+  admin: number;
   title: string;
   endsAt: string;
   description: string;

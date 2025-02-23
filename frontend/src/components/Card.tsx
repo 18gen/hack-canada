@@ -5,7 +5,7 @@ import { FaGithub, FaInstagram } from "react-icons/fa";
 import { MdOutlineMail } from "react-icons/md";
 
 interface CardProps {
-  id: string;
+  id: number;
   name: string;
   image: string;
   email: string;
@@ -13,7 +13,7 @@ interface CardProps {
 
 const Card: React.FC<CardProps> = ({ id, name, image, email }) => {
   return (
-    <div className="relative w-full sm:h-80 h-56 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg shadow-2xl overflow-hidden transition-all">
+    <div className="relative w-full sm:h-48 h-40 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg shadow-2xl overflow-hidden transition-all">
       <div className="p-6 flex flex-col h-full">
         <div className="flex flex-row justify-between items-center">
           <h2 className="text-4xl font-bold text-gray-800">{name}</h2>
