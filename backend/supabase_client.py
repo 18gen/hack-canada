@@ -7,7 +7,7 @@ from face_embedding import embedding_to_list, list_to_embedding
 # 1. Create the Supabase client
 supabase = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
 
-def face_already_exists(new_embedding, tolerance=0.6):
+def face_already_exists(new_embedding, tolerance=0.4):
     """
     Check if 'new_embedding' matches any face_embedding in the 'users' table.
     Returns True if a match is found, else False.
@@ -37,7 +37,7 @@ def store_user_face_embedding(user_id, embedding):
     but only if the face doesn't already exist in the database.
     """
     # 1) Check for duplicates among all users
-    if face_already_exists(embedding, tolerance=0.6):
+    if face_already_exists(embedding, tolerance=0.4):
         print("❌ Face already exists in the database!")
         return False
 
@@ -77,7 +77,7 @@ def get_user_face_embedding(user_id):
 
     return list_to_embedding(embedding_list)
 
-def verify_user_face_embedding(user_id, new_embedding, tolerance=0.6):
+def verify_user_face_embedding(user_id, new_embedding, tolerance=0.4):
     """
     Compare the new face embedding to the stored embedding in the 'users' table.
     Returns True if they match, False otherwise.
@@ -93,3 +93,27 @@ def verify_user_face_embedding(user_id, new_embedding, tolerance=0.6):
     print("Face distance:", distances[0])
     return results[0]
 
+def register_user(first_name, last_name, email, embedding):
+    """
+    Register a new user with the given details and face embedding.
+    """
+    emb_list = embedding_to_list(embedding)
+
+    response = supabase.table("users").insert([
+        {"first_name": first_name, "last_name": last_name, "email": email, "face_embedding": emb_list}
+    ]).execute()
+
+    user_id = response.data[0]["id"] if response.data else None
+    if not user_id:
+        print("❌ Error registering user:", response)
+        return False
+
+    return user_id
+
+def check_email(email):
+    """
+    Check if the email is already registered in the 'users' table.
+    Returns user_id if found, otherwise None.
+    """
+    response = supabase.table("users").select("id").eq("email", email).single().execute()
+    return response.data.get("id") if response.data else None
