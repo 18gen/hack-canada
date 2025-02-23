@@ -24,8 +24,6 @@ def register():
     email = request.form.get("email")
     birthday = request.form.get("birthday")
 
-    print(first_name, last_name, email, birthday)
-
     if not first_name or not last_name or not email or not birthday:
         return jsonify({"error": "All fields are required"}), 400
 
@@ -36,7 +34,6 @@ def register():
         if response.data and len(response.data) > 0:
             return jsonify({"error": "Email in use, please log in."}), 400
     except Exception as e:
-        print(f"Database error: {str(e)}")
         return jsonify({"error": "Error checking user existence"}), 500
 
     # If we get here, email is not in use. Continue with registration...
