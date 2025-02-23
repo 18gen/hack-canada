@@ -28,8 +28,8 @@ export default function Navbar({ showLogout = false }: NavbarProps) {
 	};
 
 	return (
-    <nav className="w-full p-4 flex justify-between items-center">
-      <div className="text-lg font-bold">Hack Canada</div>
+    <nav className="w-full py-4 px-4 md:px-8 flex justify-between items-center">
+      <div className="text-xl font-bold">TruVote</div>
       {showLogout && user && (
         <button
           onClick={handleLogout}

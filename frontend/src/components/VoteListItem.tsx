@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { IoIosArrowDown, IoIosArrowForward } from "react-icons/io";
-import { FaCalendarAlt } from "react-icons/fa"; // Import calendar and clock icons
+import { FaCalendarAlt, FaLock, FaLockOpen, FaCrown } from "react-icons/fa";
 import { supabase } from "@/lib/supabase";
 import { VoteListItemProps } from "@/interfaces/vote";
 import { formatEndsAt } from "@/utils/dateUtils";
@@ -26,6 +26,8 @@ const VoteListItem: React.FC<VoteListItemExtendedProps> = ({
 			vote_count: number;
 		}>
 	>([]);
+	const [totalVotes, setTotalVotes] = useState(0);
+	const isHost = item.admin === currentUserId;
 	const isClosed = new Date(item.endsAt) < new Date();
 
 	useEffect(() => {
@@ -64,6 +66,7 @@ const VoteListItem: React.FC<VoteListItemExtendedProps> = ({
 			);
 			const data = await response.json();
 			setOptionVotes(data);
+			setTotalVotes(data.reduce((acc: number, curr: any) => acc + curr.vote_count, 0));
 		} catch (error) {
 			console.error("Error fetching vote counts:", error);
 		}
@@ -72,7 +75,7 @@ const VoteListItem: React.FC<VoteListItemExtendedProps> = ({
 	return (
 		<li
 			onClick={() => {
-				if (item.admin === currentUserId && !expanded) {
+				if (isHost && !expanded) {
 					fetchVoteCount();
 				}
 				onToggle();
@@ -83,15 +86,27 @@ const VoteListItem: React.FC<VoteListItemExtendedProps> = ({
 				<div className="flex items-center gap-2">
 					<span className="font-medium text-gray-100">{item.title}</span>
 					<span
-						className={`text-xs font-semibold px-2 py-1 rounded-full ${
-							isClosed ? "bg-red-600" : "bg-green-600"
-						}`}>
-						{isClosed ? "Closed" : "Open"}
+					className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${
+						isClosed ? "bg-red-600" : "bg-green-600"
+					}`}
+					>
+					{isClosed ? (
+						<>
+						<FaLock className="text-xs" />
+						Closed
+						</>
+					) : (
+						<>
+						<FaLockOpen className="text-xs" />
+						Open
+						</>
+					)}
 					</span>
-					{item.admin === currentUserId && (
-						<span className="text-xs font-semibold px-2 py-1 rounded-full bg-yellow-600 text-gray-900">
-							Host
-						</span>
+					{isHost  && (
+					<span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full bg-yellow-600 text-gray-900">
+						<FaCrown className="text-xs" />
+						Host
+					</span>
 					)}
 				</div>
 				<span className="text-sm text-gray-300">
@@ -115,32 +130,47 @@ const VoteListItem: React.FC<VoteListItemExtendedProps> = ({
 					</div>
 
 					{/* Conditionally render Host text or Options */}
-					{item.admin === currentUserId ? (
+					{isHost ? (
 						<div className="space-y-2">
-							<h4 className="text-gray-100 font-medium mb-2">Vote Results:</h4>
+							<h4 className="text-gray-100 mt-1 text-sm">
+								Results ({totalVotes} total votes)
+							</h4>
 							<div className="space-y-2">
-								{optionVotes.map((option) => (
-									<div
-										key={option.option_id}
-										className="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
-										<span className="text-gray-200">{option.option_text}</span>
-										<span className="text-blue-400 font-semibold">
-											{option.vote_count} votes
-										</span>
+							{optionVotes.map((option) => {
+								const percentage =
+									totalVotes > 0
+									? Math.round((option.vote_count / totalVotes) * 100)
+									: 0;
+								return (
+									<div key={option.option_id} className="space-y-1">
+										<div className="flex justify-between text-sm text-gray-300">
+											<div>
+												<span>{option.option_text}</span>
+												<span className="text-xs text-gray-400 text-right"> {option.vote_count} votes</span>
+											</div>
+											<span>{percentage}%</span>
+										</div>
+										<div className="w-full bg-gray-600 rounded-full h-2.5">
+											<div
+											className="bg-blue-600 h-2.5 rounded-full transition-all duration-500"
+											style={{ width: `${percentage}%` }}
+											/>
+										</div>
 									</div>
-								))}
+								);
+								})}
 							</div>
 						</div>
 					) : (
 						<div>
-							<h4 className="text-gray-100 font-medium mb-2">Options:</h4>
+							<h4 className="text-gray-100 text-sm pt-1 mb-2">Options:</h4>
 							<div className="flex flex-wrap gap-2">
 								{item.options.map((option) => {
 									const isSelected = selectedOptionId === option.id;
 									return (
 										<div
 											key={option.id}
-											className={`px-3.5 py-1 rounded-full transition-all duration-300 border 
+											className={`px-3.5 text-sm py-1 rounded-full transition-all duration-300 border 
                       ${
 												isSelected
 													? "bg-green-600 text-white border-green-600"
