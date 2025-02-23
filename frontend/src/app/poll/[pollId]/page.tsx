@@ -175,7 +175,7 @@ export default function PollInvitation() {
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center p-4">
       {showLoginModal && (
-        <LoginModal onClose={() => setShowLoginModal(false)} onLoginSuccess={handleLoginSuccess} />
+        <LoginModal onClose={() => setShowLoginModal(false)}  />
       )}
       {showCheckModal && (
         <CheckModal
