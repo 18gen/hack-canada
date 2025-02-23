@@ -1,7 +1,7 @@
 // components/CameraCapture.tsx
 "use client";
 
-import React, { useRef, useEffect, forwardRef } from "react";
+import React, { useRef, useEffect, forwardRef, useState } from "react";
 
 type CameraCaptureProps = {
   onCapture: (imageData: string) => void;
@@ -16,12 +16,23 @@ const CameraCapture = forwardRef<CameraHandle, CameraCaptureProps>(
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const flashRef = useRef<HTMLDivElement>(null);
+    const [audioReady, setAudioReady] = useState(false);
+    const audioRef = useRef<HTMLAudioElement>();
 
     const triggerFlash = () => {
+      // Visual flash
       flashRef.current?.classList.add("animate-flash");
       setTimeout(() => {
         flashRef.current?.classList.remove("animate-flash");
       }, 300);
+      
+      // Audio flash
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0; // Reset audio to start
+        audioRef.current.play().catch(error => {
+          console.error("Audio playback failed:", error);
+        });
+      }
     };
 
     React.useImperativeHandle(ref, () => ({
@@ -37,6 +48,11 @@ const CameraCapture = forwardRef<CameraHandle, CameraCaptureProps>(
     }));
 
     useEffect(() => {
+      // Initialize audio
+      audioRef.current = new Audio('/sounds/flash.mp3');
+      audioRef.current.preload = "auto";
+      
+      // Set up camera stream
       let stream: MediaStream | null = null;
       navigator.mediaDevices
         .getUserMedia({ video: { facingMode: "user" } })
@@ -49,30 +65,24 @@ const CameraCapture = forwardRef<CameraHandle, CameraCaptureProps>(
 
       return () => {
         stream?.getTracks().forEach((track) => track.stop());
+        audioRef.current?.remove();
       };
     }, []);
 
     return (
-		<div className="relative aspect-[4/3] w-full max-w-4xl bg-black rounded-lg overflow-hidden">
-        {/* Camera viewfinder */}
+      <div className="relative aspect-[4/3] w-full max-w-4xl bg-black rounded-lg overflow-hidden">
         <video
           ref={videoRef}
           autoPlay
           playsInline
           className="w-full h-full object-cover"
         />
-        
-        {/* Flash overlay */}
         <div
           ref={flashRef}
           className="absolute inset-0 bg-white opacity-0 pointer-events-none"
         />
-        
-        
-        {/* Camera body decoration */}
         <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-gray-900 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-gray-900 to-transparent" />
-        
         <canvas ref={canvasRef} className="hidden" width={640} height={480} />
       </div>
     );
