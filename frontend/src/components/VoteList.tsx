@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   FaSortAlphaDown,
   FaSortAlphaUp,
@@ -25,6 +25,9 @@ const VoteList: React.FC<VoteListProps> = ({ user_id, refresh }) => {
   const [activeSortField, setActiveSortField] = useState<"name" | "endsAt">("name");
   const [nameSortAsc, setNameSortAsc] = useState(true);
   const [dateSortAsc, setDateSortAsc] = useState(true);
+  const [filter, setFilter] = useState<"all" | "open" | "closed" | "host">("all");
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchPolls = async () => {
@@ -108,12 +111,26 @@ const VoteList: React.FC<VoteListProps> = ({ user_id, refresh }) => {
     };
 
     fetchPolls();
-  }, [user_id, refresh]); // re-fetch whenever refresh changes
+  }, [user_id, refresh]);
 
   // Filter by search term
-  const filteredItems = voteItems.filter((item) =>
+  const searchFilteredItems = voteItems.filter((item) =>
     item.title.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Additional filtering based on filter state
+  const filteredItems = searchFilteredItems.filter((item) => {
+    switch (filter) {
+      case "open":
+        return new Date(item.endsAt) >= new Date();
+      case "closed":
+        return new Date(item.endsAt) < new Date();
+      case "host":
+        return item.admin === user_id;
+      default:
+        return true;
+    }
+  });
 
   // Sort by name or end date
   const sortedItems = filteredItems.slice().sort((a, b) => {
@@ -127,6 +144,19 @@ const VoteList: React.FC<VoteListProps> = ({ user_id, refresh }) => {
         : b.endsAt.localeCompare(a.endsAt);
     }
   });
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsFilterDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Error: {error}</p>;
@@ -142,8 +172,8 @@ const VoteList: React.FC<VoteListProps> = ({ user_id, refresh }) => {
         className="w-full text-gray-800 px-4 py-2 mb-4 bg-gray-100 border border-gray-300 rounded-lg shadow-inner focus:outline-none"
       />
 
-      {/* Sorting Buttons */}
-      <div className="flex gap-4 mb-4">
+      {/* Sorting and Filter Dropdown */}
+      <div className="flex flex-wrap gap-4 mb-4 items-center">
         <button
           onClick={() => {
             setActiveSortField("name");
@@ -168,6 +198,40 @@ const VoteList: React.FC<VoteListProps> = ({ user_id, refresh }) => {
             (dateSortAsc ? <FaSortNumericDown /> : <FaSortNumericUp />)}
           Sort by End Date
         </button>
+
+        {/* Single Filter Dropdown */}
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setIsFilterDropdownOpen((prev) => !prev)}
+            className="px-3 py-1.5 rounded-lg text-sm bg-gray-200 text-gray-800 hover:rounded-lg hover:bg-gray-300 transition-all flex items-center gap-2"
+          >
+            Filter: {filter.charAt(0).toUpperCase() + filter.slice(1)}
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {isFilterDropdownOpen && (
+            <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-10">
+              <ul>
+                {(["all", "open", "closed", "host"] as const).map((f) => (
+                  <li key={f}>
+                    <button
+                      onClick={() => {
+                        setFilter(f);
+                        setIsFilterDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-sm transition-all ${
+                        filter === f ? "bg-purple-600 text-white" : "text-gray-800 hover:bg-gray-200"
+                      }`}
+                    >
+                      {f.charAt(0).toUpperCase() + f.slice(1)}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Poll List */}
