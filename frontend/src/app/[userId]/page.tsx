@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useContext } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Card from "@/components/Card";
 import Form from "@/components/Form";
@@ -9,6 +9,7 @@ import VoteList from "@/components/VoteList";
 import Toast from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import { UserContext } from "../UserContext";
+import ClipLoader from "react-spinners/ClipLoader";
 
 interface User {
 	id: number;
@@ -18,12 +19,14 @@ interface User {
 }
 
 export default function DashboardPage() {
+	const router = useRouter();
 	const userContext = useContext(UserContext);
 	const params = useParams();
 	const userId = params.userId as string;
 	const [user, setUser] = useState<User | null>(null);
 	const [pollRefresh, setPollRefresh] = useState(0);
 	const [notification, setNotification] = useState("");
+	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
 		const fetchUser = async () => {
@@ -43,6 +46,25 @@ export default function DashboardPage() {
 		}
 	}, [userId, userContext]);
 
+	useEffect(() => {
+		if (userContext?.user !== undefined) {
+			setLoading(false);
+		}
+	}, [userContext]);
+
+	useEffect(() => {
+		if (!loading) {
+			if (!userContext?.user) {
+				router.push("/");
+			} else if (
+				userContext?.user &&
+				Number(userContext.user) !== Number(userId)
+			) {
+				router.push(`/${userContext.user}`);
+			}
+		}
+	}, [userContext, userId, router, loading]);
+
 	// Callback passed to Form: refresh polls and show a toast.
 	const handlePollCreated = () => {
 		console.log("handlePollCreated called");
@@ -50,11 +72,12 @@ export default function DashboardPage() {
 		setNotification("Poll created successfully!");
 	};
 
-	if (!userContext?.user) {
+	if (loading) {
 		return (
 			<div className="min-h-screen flex flex-col items-center justify-center">
-				<Navbar showLogout />
-				<p className="text-xl">Not logged in</p>
+				{/* <Navbar /> */}
+				<ClipLoader size={50} color={"#123abc"} loading={loading} />
+				<p className="text-xl mt-4">Loading...</p>
 			</div>
 		);
 	}

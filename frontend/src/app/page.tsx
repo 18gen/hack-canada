@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useContext } from "react";
+import React, { useState, useRef, useContext, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import CameraCapture from "@/components/CameraCapture";
@@ -23,6 +23,13 @@ export default function Home() {
 	const [capturedImage, setCapturedImage] = useState<string | null>(null);
 	const router = useRouter();
 	const cameraRef = useRef<{ capture: () => void }>(null);
+
+	useEffect(() => {
+		const userId = localStorage.getItem("user_id");
+		if (userId) {
+			router.push(`/${userId}`);
+		}
+	}, [router]);
 
 	const handleCapture = (imageData: string) => {
 		setCapturedImage(imageData);
