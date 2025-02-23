@@ -133,6 +133,14 @@ def login():
         return jsonify({"user_id": user_id}), 200
     else:
         return jsonify({"error": "Face verification failed, please try again"}), 401
+    
+@app.route('/api/get-votes/<poll_id>', methods=['GET'])
+def get_votes(poll_id):
+    try:
+        response = supabase.rpc('get_poll_votes', params={'poll_id_input': poll_id}).execute()
+        return jsonify(response.data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=3001, debug=True)
