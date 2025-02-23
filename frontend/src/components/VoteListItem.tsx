@@ -7,7 +7,11 @@ import { supabase } from "@/lib/supabase";
 import { VoteListItemProps } from "@/interfaces/vote";
 import { formatEndsAt } from "@/utils/dateUtils";
 
-const VoteListItem: React.FC<VoteListItemProps> = ({ item, expanded, onToggle }) => {
+interface VoteListItemExtendedProps extends VoteListItemProps {
+  currentUserId: number;
+}
+
+const VoteListItem: React.FC<VoteListItemExtendedProps> = ({ item, expanded, onToggle, currentUserId }) => {
   const [selectedOptionId, setSelectedOptionId] = useState<number | null>(
     (item as any).selectedOptionId ?? null
   );
@@ -81,7 +85,7 @@ const VoteListItem: React.FC<VoteListItemProps> = ({ item, expanded, onToggle })
       onClick={onToggle}
       className="cursor-pointer px-4 py-3 bg-gray-800 rounded-lg shadow-inner transition-all hover:bg-gray-700 active:bg-gray-600"
     >
-      {/* Poll Header with Title and Status Badge */}
+      {/* Poll Header with Title and Status Badges */}
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
           <span className="font-medium text-gray-100">{item.title}</span>
@@ -92,6 +96,11 @@ const VoteListItem: React.FC<VoteListItemProps> = ({ item, expanded, onToggle })
           >
             {isClosed ? "Closed" : "Open"}
           </span>
+          {item.admin === currentUserId && (
+            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-yellow-600 text-gray-900">
+              Host
+            </span>
+          )}
         </div>
         <span className="text-sm text-gray-300">
           {expanded ? <IoIosArrowDown /> : <IoIosArrowForward />}
@@ -102,12 +111,10 @@ const VoteListItem: React.FC<VoteListItemProps> = ({ item, expanded, onToggle })
         <div className="mt-3 space-y-2">
           {/* Enhanced Date Badge */}
           <div className="flex items-center gap-2 bg-gray-700 rounded-lg py-1.5 px-3">
-            <div className="flex items-center gap-2">
-              <FaCalendarAlt className="text-gray-400" />
-              <span className="text-sm text-gray-200">
-                Ends on: {formatEndsAt(item.endsAt)}
-              </span>
-            </div>
+            <FaCalendarAlt className="text-gray-400" />
+            <span className="text-sm text-gray-200">
+              Ends on: {formatEndsAt(item.endsAt)}
+            </span>
           </div>
 
           {/* Description */}

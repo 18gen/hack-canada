@@ -12,10 +12,11 @@ import VoteListItem from "./VoteListItem";
 import { Poll } from "@/interfaces/vote";
 
 interface VoteListProps {
-  user_id: string;
+  user_id: number;
+  refresh: number; // triggers re-fetch when changed
 }
 
-const VoteList: React.FC<VoteListProps> = ({ user_id }) => {
+const VoteList: React.FC<VoteListProps> = ({ user_id, refresh }) => {
   const [search, setSearch] = useState("");
   const [voteItems, setVoteItems] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,12 +25,14 @@ const VoteList: React.FC<VoteListProps> = ({ user_id }) => {
   const [activeSortField, setActiveSortField] = useState<"name" | "endsAt">("name");
   const [nameSortAsc, setNameSortAsc] = useState(true);
   const [dateSortAsc, setDateSortAsc] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<"open" | "closed" | "both">("both");
 
-  // Fetch votes for the given user, joining with the option and related poll details.
   useEffect(() => {
     const fetchPolls = async () => {
-      const { data, error } = await supabase
+      setLoading(true);
+      setError("");
+
+      // Query polls where the user has voted
+      const { data: votesData, error: votesError } = await supabase
         .from("votes")
         .select(`
           options (
@@ -37,6 +40,7 @@ const VoteList: React.FC<VoteListProps> = ({ user_id }) => {
             option_text,
             poll:poll_id (
               id,
+              admin,
               title,
               ends_at,
               description,
@@ -46,45 +50,70 @@ const VoteList: React.FC<VoteListProps> = ({ user_id }) => {
         `)
         .eq("user_id", user_id);
 
-      if (error) {
-        setError(error.message);
-      } else if (data) {
-        // Map each vote into a VoteItem using the nested poll data.
-        const polls = data.map((vote: any) => {
-          const poll = vote.options.poll;
-          return {
+      // Query polls where the user is admin
+      const { data: adminPollsData, error: adminPollsError } = await supabase
+        .from("poll")
+        .select(`
+          id,
+          admin,
+          title,
+          ends_at,
+          description,
+          options:options ( id, option_text )
+        `)
+        .eq("admin", user_id);
+
+      if (votesError) {
+        setError(votesError.message);
+        setLoading(false);
+        return;
+      }
+      if (adminPollsError) {
+        setError(adminPollsError.message);
+        setLoading(false);
+        return;
+      }
+
+      // Convert votesData -> polls
+      const votePolls: Poll[] = votesData
+        ? votesData.map((vote: any) => {
+            const poll = vote.options.poll;
+            return {
+              id: poll.id,
+              admin: poll.admin,
+              title: poll.title,
+              endsAt: poll.ends_at,
+              description: poll.description,
+              options: poll.options || [],
+            };
+          })
+        : [];
+
+      // Convert adminPollsData -> polls
+      const adminPolls: Poll[] = adminPollsData
+        ? adminPollsData.map((poll: any) => ({
             id: poll.id,
+            admin: poll.admin,
             title: poll.title,
             endsAt: poll.ends_at,
             description: poll.description,
             options: poll.options || [],
-            // Store the ID of the option this user voted on
-            selectedOptionId: vote.options.id,
-          };
-        });
-        setVoteItems(polls);
-      }
+          }))
+        : [];
+
+      // Combine the two arrays (remove duplicates if needed)
+      const combinedPolls = [...votePolls, ...adminPolls];
+      setVoteItems(combinedPolls);
       setLoading(false);
     };
 
     fetchPolls();
-  }, [user_id]);
+  }, [user_id, refresh]); // re-fetch whenever refresh changes
 
-  // Filter by search term and poll status
-  const filteredItems = voteItems.filter((item) => {
-    const matchesSearch = item.title.toLowerCase().includes(search.toLowerCase());
-    // Determine if poll is open or closed based on the current date
-    const now = new Date();
-    const pollEndDate = new Date(item.endsAt);
-    const isOpen = pollEndDate > now;
-    let matchesStatus = true;
-    if (statusFilter === "open") {
-      matchesStatus = isOpen;
-    } else if (statusFilter === "closed") {
-      matchesStatus = !isOpen;
-    }
-    return matchesSearch && matchesStatus;
-  });
+  // Filter by search term
+  const filteredItems = voteItems.filter((item) =>
+    item.title.toLowerCase().includes(search.toLowerCase())
+  );
 
   // Sort by name or end date
   const sortedItems = filteredItems.slice().sort((a, b) => {
@@ -113,71 +142,32 @@ const VoteList: React.FC<VoteListProps> = ({ user_id }) => {
         className="w-full text-gray-800 px-4 py-2 mb-4 bg-gray-100 border border-gray-300 rounded-lg shadow-inner focus:outline-none"
       />
 
-      {/* Combined Sorting and Filter Controls */}
-      <div className="flex items-center gap-4 mb-4">
-        {/* Sorting Buttons */}
-        <div className="flex gap-2">
-          <button
-            onClick={() => {
-              setActiveSortField("name");
-              setNameSortAsc((prev) => !prev);
-              setExpandedItem(null);
-            }}
-            className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
-          >
-            {activeSortField === "name" &&
-              (nameSortAsc ? <FaSortAlphaDown /> : <FaSortAlphaUp />)}
-            Name
-          </button>
-          <button
-            onClick={() => {
-              setActiveSortField("endsAt");
-              setDateSortAsc((prev) => !prev);
-              setExpandedItem(null);
-            }}
-            className="flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all"
-          >
-            {activeSortField === "endsAt" &&
-              (dateSortAsc ? <FaSortNumericDown /> : <FaSortNumericUp />)}
-            End Date
-          </button>
-        </div>
-
-        {/* Status Filter Toggle */}
-        <div className="flex items-center gap-2">
-          <div className="relative flex bg-gray-800 rounded-lg p-1 gap-1">
-          <button
-              onClick={() => setStatusFilter("both")}
-              className={`px-3 py-1 rounded-lg transition-all ${
-                statusFilter === "both"
-                  ? "bg-indigo-600 text-white shadow-md"
-                  : "bg-transparent hover:bg-gray-600"
-              }`}
-            >
-              Both
-            </button>
-            <button
-              onClick={() => setStatusFilter("open")}
-              className={`px-3 py-1 rounded-lg text-white transition-all ${
-                statusFilter === "open"
-                  ? "bg-indigo-600  shadow-md"
-                  : "bg-transparent hover:bg-gray-600"
-              }`}
-            >
-              Open
-            </button>
-            <button
-              onClick={() => setStatusFilter("closed")}
-              className={`px-3 py-1 rounded-lg text-white transition-all ${
-                statusFilter === "closed"
-                  ? "bg-indigo-600  shadow-md"
-                  : "bg-transparent hover:bg-gray-600"
-              }`}
-            >
-              Closed
-            </button>
-          </div>
-        </div>
+      {/* Sorting Buttons */}
+      <div className="flex gap-4 mb-4">
+        <button
+          onClick={() => {
+            setActiveSortField("name");
+            setNameSortAsc((prev) => !prev);
+            setExpandedItem(null);
+          }}
+          className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+        >
+          {activeSortField === "name" &&
+            (nameSortAsc ? <FaSortAlphaDown /> : <FaSortAlphaUp />)}
+          Sort by Name
+        </button>
+        <button
+          onClick={() => {
+            setActiveSortField("endsAt");
+            setDateSortAsc((prev) => !prev);
+            setExpandedItem(null);
+          }}
+          className="flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all"
+        >
+          {activeSortField === "endsAt" &&
+            (dateSortAsc ? <FaSortNumericDown /> : <FaSortNumericUp />)}
+          Sort by End Date
+        </button>
       </div>
 
       {/* Poll List */}
@@ -187,6 +177,7 @@ const VoteList: React.FC<VoteListProps> = ({ user_id }) => {
             <VoteListItem
               key={item.id}
               item={item}
+              currentUserId={user_id}
               expanded={expandedItem === item.id}
               onToggle={() =>
                 setExpandedItem((prev) => (prev === item.id ? null : item.id))
