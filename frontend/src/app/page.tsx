@@ -149,7 +149,7 @@ export default function Home() {
           </div>
 
           {/* Right: Video/Camera Section */}
-          <div className="w-full md:w-1/2 max-w-md p-8 rounded-lg shadow-md">
+          <div className="w-3/4 md:w-1/2 max-w-md p-8  rounded-lg shadow-md">
             <CameraCapture />
           </div>
         </div>

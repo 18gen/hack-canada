@@ -50,6 +50,7 @@ export default function DashboardPage() {
               id={user.id}
               name={`${user.first_name} ${user.last_name}`}
               image="/cat-face.jpg"
+              email={user.email}
             />}
             </div>
           </div>

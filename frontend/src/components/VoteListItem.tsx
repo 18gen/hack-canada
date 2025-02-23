@@ -2,16 +2,13 @@
 
 import React, { useState } from "react";
 import { IoIosArrowDown, IoIosArrowForward } from "react-icons/io";
+import { FaCalendarAlt, FaClock } from "react-icons/fa"; // Import calendar and clock icons
 import { supabase } from "@/lib/supabase";
 import { VoteListItemProps } from "@/interfaces/vote";
 import { formatEndsAt } from "@/utils/dateUtils";
 
-// Assuming Poll interface now has an optional property:
-// selectedOptionId?: number;
 const VoteListItem: React.FC<VoteListItemProps> = ({ item, expanded, onToggle }) => {
-  // Initialize the selected option from Supabase if it exists.
   const [selectedOptionId, setSelectedOptionId] = useState<number | null>(
-    // If item.selectedOptionId is undefined, fallback to null.
     (item as any).selectedOptionId ?? null
   );
   const [voteError, setVoteError] = useState("");
@@ -23,7 +20,6 @@ const VoteListItem: React.FC<VoteListItemProps> = ({ item, expanded, onToggle })
       return;
     }
 
-    // Prompt for email and verify user.
     const email = prompt("Enter your email to confirm your vote:");
     if (!email) {
       alert("Email is required to vote.");
@@ -44,7 +40,6 @@ const VoteListItem: React.FC<VoteListItemProps> = ({ item, expanded, onToggle })
     const userId = userData.id;
     const pollOptionIds = item.options.map((opt) => opt.id);
 
-    // Check for an existing vote for this poll.
     const { data: existingVote, error: voteFetchError } = await supabase
       .from("votes")
       .select("id")
@@ -77,7 +72,6 @@ const VoteListItem: React.FC<VoteListItemProps> = ({ item, expanded, onToggle })
       }
     }
 
-    // Update the local state to reflect the new selection.
     setSelectedOptionId(optionId);
     setVoteError("");
   };
@@ -106,11 +100,14 @@ const VoteListItem: React.FC<VoteListItemProps> = ({ item, expanded, onToggle })
 
       {expanded && (
         <div className="mt-3 space-y-2">
-          {/* Date Badge */}
-          <div className="inline-flex items-center px-3 py-1 bg-gray-700 rounded-full">
-            <span className="text-xs font-mono text-gray-200">
-              {formatEndsAt(item.endsAt)}
-            </span>
+          {/* Enhanced Date Badge */}
+          <div className="flex items-center gap-2 bg-gray-700 rounded-lg py-1.5 px-3">
+            <div className="flex items-center gap-2">
+              <FaCalendarAlt className="text-gray-400" />
+              <span className="text-sm text-gray-200">
+                Ends on: {formatEndsAt(item.endsAt)}
+              </span>
+            </div>
           </div>
 
           {/* Description */}
@@ -132,7 +129,7 @@ const VoteListItem: React.FC<VoteListItemProps> = ({ item, expanded, onToggle })
                       handleOptionChange(option.id);
                     }}
                     disabled={isClosed}
-                    className={`px-3 py-1.5 rounded-lg transition-all duration-300 border 
+                    className={`px-3.5 py-1 rounded-full transition-all duration-300 border 
                       ${
                         isSelected
                           ? "bg-blue-600 text-white border-blue-600"
