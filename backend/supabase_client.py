@@ -93,14 +93,14 @@ def verify_user_face_embedding(user_id, new_embedding, tolerance=0.4):
     print("Face distance:", distances[0])
     return results[0]
 
-def register_user(first_name, last_name, email, embedding):
+def register_user(first_name, last_name, email, birthday, embedding):
     """
     Register a new user with the given details and face embedding.
     """
     emb_list = embedding_to_list(embedding)
 
     response = supabase.table("users").insert([
-        {"first_name": first_name, "last_name": last_name, "email": email, "face_embedding": emb_list}
+        {"first_name": first_name, "last_name": last_name, "email": email, "birthday": birthday, "face_embedding": emb_list}
     ]).execute()
 
     user_id = response.data[0]["id"] if response.data else None

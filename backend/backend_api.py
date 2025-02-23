@@ -19,7 +19,8 @@ def register():
     first_name = request.form.get("first_name")
     last_name = request.form.get("last_name")
     email = request.form.get("email")
-    if not first_name or not last_name or not email:
+    birthday = request.form.get("birthday")
+    if not first_name or not last_name or not email or not birthday:
         return jsonify({"error": "All fields are required"}), 400
     
     # check if email in use already
@@ -50,7 +51,7 @@ def register():
         return jsonify({"error": "Face already exists, please sign in."}), 400
     else:
         print(first_name, last_name, email, embedding)
-        user_id = register_user(first_name, last_name, email, embedding)
+        user_id = register_user(first_name, last_name, email, birthday, embedding)
         if user_id:
             os.remove(file_path)
             return jsonify({"user_id": user_id}), 200
