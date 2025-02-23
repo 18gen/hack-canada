@@ -1,15 +1,23 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useContext } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import CameraCapture from "@/components/CameraCapture";
+import { UserContext } from "./UserContext";
 
 export default function Home() {
+	const userContext = useContext(UserContext);
+
+	if (!userContext) {
+		throw new Error("UserContext must be used within a UserProvider");
+	}
+
+	const { setUser } = userContext;
 	const [email, setEmail] = useState("");
 	const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [birthday, setBirthday] = useState("");
+	const [lastName, setLastName] = useState("");
+	const [birthday, setBirthday] = useState("");
 	const [error, setError] = useState("");
 	const [isSignUp, setIsSignUp] = useState(false);
 	const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -82,11 +90,12 @@ export default function Home() {
 					if (!response.ok) {
 						const result = await response.json();
 						setError(result.error || "An unknown error occurred");
-            return;
+						return;
 					}
 
 					const result = await response.json();
 					if (result.user_id) {
+						setUser(result.user_id); // Set the user_id in the context and localStorage
 						router.push(`/${result.user_id}`);
 					}
 				} catch (error) {
@@ -100,7 +109,7 @@ export default function Home() {
 			}
 		} else {
 			try {
-        if (cameraRef.current) {
+				if (cameraRef.current) {
 					try {
 						const imageData = await new Promise<string>((resolve, reject) => {
 							const timeout = setTimeout(
@@ -142,10 +151,10 @@ export default function Home() {
 						// Create FormData and append fields
 						const formData = new FormData();
 						formData.append("image", blob, "captured-image.jpg");
-            formData.append("email", email);
-            formData.append("first_name", firstName);
-            formData.append("last_name", lastName);
-            formData.append("birthday", birthday);
+						formData.append("email", email);
+						formData.append("first_name", firstName);
+						formData.append("last_name", lastName);
+						formData.append("birthday", birthday);
 
 						const response = await fetch("http://localhost:3001/api/register", {
 							method: "POST",
@@ -160,6 +169,7 @@ export default function Home() {
 
 						const result = await response.json();
 						if (result.user_id) {
+							setUser(result.user_id); // Set the user_id in the context and localStorage
 							router.push(`/${result.user_id}`);
 						}
 					} catch (error) {
@@ -173,15 +183,14 @@ export default function Home() {
 				} else {
 					setError("Camera is not available");
 				}
-      } catch (error) {
-        console.error("Error:", error);
-        setError(
-          error instanceof Error ? error.message : "An unknown error occurred"
-        )
-      }
+			} catch (error) {
+				console.error("Error:", error);
+				setError(
+					error instanceof Error ? error.message : "An unknown error occurred"
+				);
+			}
 		}
 	};
-
 
 	return (
 		<div className="min-h-screen flex flex-col">
@@ -223,20 +232,20 @@ export default function Home() {
 											className="w-full px-3 py-2 border border-gray-800 text-gray-800 rounded-lg focus:outline-none focus:ring focus:ring-blue-600"
 											placeholder="Enter your last name"
 										/>
-                  </div>
-                  <div>
-                    <label htmlFor="birthday" className="block mb-1">
-                      Birthday
-                    </label>
-                    <input
-                      type="date"
-                      id="birthday"
-                      value={birthday}
-                      onChange={(e) => setBirthday(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-800 text-gray-800 rounded-lg focus:outline-none focus:ring focus:ring-blue-600"
-                      placeholder="Enter your birthday"
-                    />
-                  </div>
+									</div>
+									<div>
+										<label htmlFor="birthday" className="block mb-1">
+											Birthday
+										</label>
+										<input
+											type="date"
+											id="birthday"
+											value={birthday}
+											onChange={(e) => setBirthday(e.target.value)}
+											className="w-full px-3 py-2 border border-gray-800 text-gray-800 rounded-lg focus:outline-none focus:ring focus:ring-blue-600"
+											placeholder="Enter your birthday"
+										/>
+									</div>
 								</>
 							)}
 							<div>
