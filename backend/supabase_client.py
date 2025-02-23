@@ -90,7 +90,6 @@ def verify_user_face_embedding(user_id, new_embedding, tolerance=0.4):
     results = face_recognition.compare_faces([stored_embedding], new_embedding, tolerance=tolerance)
     distances = face_recognition.face_distance([stored_embedding], new_embedding)
 
-    print("Face distance:", distances[0])
     return results[0]
 
 def register_user(first_name, last_name, email, birthday, embedding):
