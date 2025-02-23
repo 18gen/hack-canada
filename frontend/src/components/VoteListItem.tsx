@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { IoIosArrowDown, IoIosArrowForward } from "react-icons/io";
-import { FaCalendarAlt, FaClock } from "react-icons/fa"; // Import calendar and clock icons
+import { FaCalendarAlt } from "react-icons/fa"; // Import calendar and clock icons
 import { supabase } from "@/lib/supabase";
 import { VoteListItemProps } from "@/interfaces/vote";
 import { formatEndsAt } from "@/utils/dateUtils";
@@ -17,11 +17,9 @@ const VoteListItem: React.FC<VoteListItemExtendedProps> = ({
 	onToggle,
 	currentUserId,
 }) => {
-	const [selectedOptionId, setSelectedOptionId] = useState<number | null>(
-		(item as any).selectedOptionId ?? null
-	);
+	const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
 	const [voteError, setVoteError] = useState("");
-  const [optionVotes, setOptionVotes] = useState<
+	const [optionVotes, setOptionVotes] = useState<
 		Array<{
 			option_id: number;
 			option_text: string;
@@ -30,69 +28,36 @@ const VoteListItem: React.FC<VoteListItemExtendedProps> = ({
 	>([]);
 	const isClosed = new Date(item.endsAt) < new Date();
 
-	const handleOptionChange = async (optionId: number) => {
-		if (isClosed) {
-			alert("This poll is closed. You cannot change your vote.");
-			return;
-		}
+	useEffect(() => {
+		const fetchUserVote = async () => {
+			if (!currentUserId || !item?.id) return; // Ensure valid IDs
 
-		const email = prompt("Enter your email to confirm your vote:");
-		if (!email) {
-			alert("Email is required to vote.");
-			return;
-		}
+			try {
+				const { data: userVote, error } = await supabase
+					.from("votes")
+					.select("option_id")
+					.eq("user_id", currentUserId)
+					.maybeSingle(); // Allow cases where no vote exists
 
-		const { data: userData, error: userError } = await supabase
-			.from("users")
-			.select("id")
-			.eq("email", email)
-			.single();
+				if (error) {
+					console.error("Error fetching user vote:", error.message);
+					return;
+				}
 
-		if (userError || !userData) {
-			alert("Could not verify your email. You cannot vote.");
-			return;
-		}
-
-		const userId = userData.id;
-		const pollOptionIds = item.options.map((opt) => opt.id);
-
-		const { data: existingVote, error: voteFetchError } = await supabase
-			.from("votes")
-			.select("id")
-			.in("option_id", pollOptionIds)
-			.eq("user_id", userId)
-			.maybeSingle();
-
-		if (voteFetchError) {
-			setVoteError(voteFetchError.message);
-			return;
-		}
-
-		if (existingVote) {
-			const { error: updateError } = await supabase
-				.from("votes")
-				.update({ option_id: optionId })
-				.eq("id", existingVote.id);
-
-			if (updateError) {
-				setVoteError(updateError.message);
-				return;
+				if (userVote) {
+					setSelectedOptionId(userVote.option_id);
+				}
+			} catch (error) {
+				console.error("Unexpected error fetching user vote:", error);
 			}
-		} else {
-			const { error: insertError } = await supabase
-				.from("votes")
-				.insert({ option_id: optionId, user_id: userId });
-			if (insertError) {
-				setVoteError(insertError.message);
-				return;
-			}
-		}
+		};
 
-		setSelectedOptionId(optionId);
-		setVoteError("");
-  };
-  
-  const fetchVoteCount = async () => {
+		if (expanded) {
+			fetchUserVote();
+		}
+	}, [expanded, currentUserId, item?.id]);
+
+	const fetchVoteCount = async () => {
 		try {
 			const response = await fetch(
 				`http://localhost:3001/api/get-votes/${item.id}`
@@ -151,7 +116,6 @@ const VoteListItem: React.FC<VoteListItemExtendedProps> = ({
 
 					{/* Conditionally render Host text or Options */}
 					{item.admin === currentUserId ? (
-						// list the options and how many votes each option has, make sure they cant
 						<div className="space-y-2">
 							<h4 className="text-gray-100 font-medium mb-2">Vote Results:</h4>
 							<div className="space-y-2">
@@ -174,23 +138,17 @@ const VoteListItem: React.FC<VoteListItemExtendedProps> = ({
 								{item.options.map((option) => {
 									const isSelected = selectedOptionId === option.id;
 									return (
-										<button
+										<div
 											key={option.id}
-											onClick={(e) => {
-												e.stopPropagation();
-												handleOptionChange(option.id);
-											}}
-											disabled={isClosed}
 											className={`px-3.5 py-1 rounded-full transition-all duration-300 border 
                       ${
 												isSelected
-													? "bg-blue-600 text-white border-blue-600"
-													: "bg-gray-700 text-gray-200 border-transparent hover:bg-gray-600"
-											}
-                      ${isClosed && "opacity-50 cursor-not-allowed"}`}>
+													? "bg-green-600 text-white border-green-600"
+													: "bg-gray-700 text-gray-200 border-transparent"
+											}`}>
 											{option.option_text}{" "}
 											{isSelected && <span className="ml-1">✓</span>}
-										</button>
+										</div>
 									);
 								})}
 							</div>
