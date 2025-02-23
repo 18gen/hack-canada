@@ -189,12 +189,12 @@ export default function Home() {
 
 			<div className="items-center justify-center">
 				{/* Container to split the sections into two columns */}
-				<h2 className="text-2xl font-bold mb-6 text-center">
+				<h2 className="text-2xl font-bold lg:mt-14 mb-6 text-center">
 					{isSignUp ? "Sign Up" : "Sign In"}
 				</h2>
-				<div className="flex flex-col md:flex-row items-center justify-center gap-8">
+				<div className="flex flex-col lg:flex-row items-center justify-center gap-8">
 					{/* Left: Input/Form Section */}
-					<div className="w-full md:w-1/2 max-w-md p-8 rounded-lg shadow-md">
+					<div className="w-full md:w-1/2 max-w-md px-8 rounded-lg shadow-md">
 						<form onSubmit={handleSubmit} className="space-y-4">
 							{isSignUp && (
 								<>
@@ -263,14 +263,14 @@ export default function Home() {
 							{isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
 							<button
 								onClick={() => setIsSignUp(!isSignUp)}
-								className="text-blue-600 hover:underline">
+								className="text-blue-600 hover:underline min-w-[100px] inline-block">
 								{isSignUp ? "Sign In" : "Sign Up"}
 							</button>
 						</p>
 					</div>
 
 					{/* Right: Video/Camera Section */}
-					<div className="w-3/4 md:w-1/2 max-w-md p-8  rounded-lg shadow-md">
+					<div className="w-3/4 md:w-1/2 max-w-md py-4 px-2 rounded-lg shadow-md">
 						<CameraCapture ref={cameraRef} onCapture={handleCapture} />
 					</div>
 				</div>
