@@ -215,7 +215,7 @@ const VoteListItem: React.FC<VoteListItemExtendedProps> = ({
 									);
 								})}
 							</div>
-							{isClosed && (
+							{isClosed && totalVotes > 0 && (
 								<button
 									onClick={(e) => {
 										e.stopPropagation(); // Prevent the parent onClick from firing
