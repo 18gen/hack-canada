@@ -4,10 +4,18 @@ import config
 import os
 from werkzeug.utils import secure_filename
 from supabase import create_client
-from face_embedding import generate_face_embedding, image_to_embedding
+from face_embedding import image_to_embedding
 from supabase_client import face_already_exists, register_user, verify_user_face_embedding
+from google import genai
+from google.genai import types
+from dotenv import load_dotenv
 
-supabase = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
+load_dotenv()
+
+supabase = create_client(os.getenv('SUPABASE_URL'), os.getenv('SUPABASE_KEY'))
+gemini_api_key = os.getenv('GEMINI_API_KEY')
+
+client = genai.Client(api_key=gemini_api_key)
 
 app = Flask(__name__)
 CORS(app)
@@ -137,6 +145,74 @@ def get_votes(poll_id):
         response = supabase.rpc('get_poll_votes', params={'poll_id_input': poll_id}).execute()
         return jsonify(response.data)
     except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/analysis/<poll_id>', methods=['GET'])
+def analysis(poll_id):
+    try:
+        # A) Fetch poll options
+        options_response = supabase.table("options").select("id, option_text").eq("poll_id", poll_id).execute()
+        options = options_response.data
+        if not options:
+            return jsonify({"error": "No options found for this poll."}), 404
+        
+
+        # B) Fetch votes for those options
+        option_ids = [opt['id'] for opt in options]
+        votes_response = supabase.table("votes").select("option_id, user_id").in_("option_id", option_ids).execute()
+        votes = votes_response.data
+        if not votes:
+            return jsonify({"error": "No votes recorded for this poll."}), 404
+    
+        
+        # C) Extract unique user IDs
+        user_ids = list(set(vote['user_id'] for vote in votes))
+
+        # D) Fetch user birthdays
+        users_response = supabase.table("users").select("id, birthday").in_("id", user_ids).execute()
+        users = users_response.data
+
+        # E) Map votes to user birth months
+        vote_stats = {}
+        for vote in votes:
+            user = next((u for u in users if u['id'] == vote['user_id']), None)
+            birth_group = "Unknown"
+            if user and user['birthday']:
+                month = int(user['birthday'].split('-')[1])  # Extract month from birthday
+                birth_group = f"Month_{month}"
+
+            if vote['option_id'] not in vote_stats:
+                vote_stats[vote['option_id']] = {}
+            if birth_group not in vote_stats[vote['option_id']]:
+                vote_stats[vote['option_id']][birth_group] = 0
+
+            vote_stats[vote['option_id']][birth_group] += 1
+    
+        # F) Convert option_id to candidate names
+        candidate_vote_stats = {opt['option_text']: vote_stats.get(opt['id'], {}) for opt in options}
+
+        # G) Generate text prompt for Gemini AI
+        gemini_prompt = f"""
+        You are an AI expert in analyzing voting behavior. Given the following poll results (votes per candidate grouped by voter birth month), provide a short and insightful analysis on potential age-group influence. Do not mention the poll_id or any variable names such as (Month_5). 
+
+        **Poll ID:** {poll_id}
+        **Candidate-Birthday Vote Breakdown:** 
+        {candidate_vote_stats}
+
+        **Question:** What trends can be observed based on voter birth months? Keep the response under 100 words.
+        """
+
+        print(f"Gemini Prompt: {gemini_prompt}")  # Debugging statement
+
+        # H) Call Gemini AI
+        result = client.models.generate_content(model='gemini-2.0-flash-001', contents=gemini_prompt)
+        response_text = result.text
+
+        print(f"Gemini Response: {response_text}")  # Debugging statement
+
+        return jsonify({"response": response_text})
+    except Exception as e:
+        print(f"Error: {str(e)}")  # Debugging statement
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
