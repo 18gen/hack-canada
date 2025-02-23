@@ -53,7 +53,7 @@ export default function PollInvitation() {
         .single();
 
       if (error) {
-        setError(error.message);
+        router.push(`/${userContext.user}`);
       } else {
         setPoll(data);
       }
@@ -65,12 +65,37 @@ export default function PollInvitation() {
     }
   }, [pollId]);
 
+  useEffect(() => {
+		if (!poll || !userContext.user) return;
+
+		const checkUserAdmin = async () => {
+			const { data: pollAdmin, error: pollError } = await supabase
+				.from("poll")
+				.select("admin")
+				.eq("id", pollId)
+				.single();
+
+			if (pollError) {
+				console.error("Error checking poll admin:", pollError.message);
+				return;
+			}
+
+			if (Number(pollAdmin.admin) === Number(userContext.user)) {
+				router.push(`/${userContext.user}`);
+			}
+		};
+
+		checkUserAdmin();
+	}, [poll, router, userContext]);
+
   // Immediately open login modal if no user is found after loading
   useEffect(() => {
     if (!loading && !userContext.user) {
       setShowLoginModal(true);
     }
   }, [loading, userContext]);
+
+  
 
   // Check if a logged-in user has already voted.
   useEffect(() => {
