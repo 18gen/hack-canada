@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import config
 import os
 from werkzeug.utils import secure_filename
@@ -9,6 +10,8 @@ from supabase_client import face_already_exists, register_user, verify_user_face
 supabase = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
 
 app = Flask(__name__)
+CORS(app)
+
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -20,45 +23,49 @@ def register():
     last_name = request.form.get("last_name")
     email = request.form.get("email")
     birthday = request.form.get("birthday")
+
+    print(first_name, last_name, email, birthday)
+
     if not first_name or not last_name or not email or not birthday:
         return jsonify({"error": "All fields are required"}), 400
-    
-    # check if email in use already
+
+    # Check if email is already in use
     try:
-        response = supabase.table("users").select("id").eq("email", email).single().execute()
-        if not response.data:
-            return jsonify({"error": "User not found"}), 404
+        response = supabase.table("users").select("id").eq("email", email).execute()
+        # If data exists and has entries, email is in use
+        if response.data and len(response.data) > 0:
+            return jsonify({"error": "Email in use, please log in."}), 400
     except Exception as e:
-        return jsonify({"error": "Email in use, please log in."}), 500
+        print(f"Database error: {str(e)}")
+        return jsonify({"error": "Error checking user existence"}), 500
+
+    # If we get here, email is not in use. Continue with registration...
     
-    
+    # Check if image is provided
     if 'image' not in request.files:
         return jsonify({"error": "No image provided"}), 400
 
     image_file = request.files['image']
-
     filename = secure_filename(image_file.filename)
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     image_file.save(file_path)
 
     # Generate embedding
     embedding = image_to_embedding(file_path)
-    
-    print(embedding)
-    
+
+    # Check if face already exists
     if face_already_exists(embedding, tolerance=0.4):
         os.remove(file_path)
         return jsonify({"error": "Face already exists, please sign in."}), 400
+
+    # Register the new user
+    user_id = register_user(first_name, last_name, email, birthday, embedding)
+    os.remove(file_path)  # Clean up file
+
+    if user_id:
+        return jsonify({"user_id": user_id}), 200
     else:
-        print(first_name, last_name, email, embedding)
-        user_id = register_user(first_name, last_name, email, birthday, embedding)
-        if user_id:
-            os.remove(file_path)
-            return jsonify({"user_id": user_id}), 200
-        else:
-            os.remove(file_path)
-            return jsonify({"error": "Error registering user"}), 500
-        
+        return jsonify({"error": "Error registering user"}), 500
     
 
 @app.route('/api/verify', methods=['POST'])
@@ -128,4 +135,4 @@ def login():
         return jsonify({"error": "Face verification failed, please try again"}), 401
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=3000, debug=True)
+    app.run(host='0.0.0.0', port=3001, debug=True)
