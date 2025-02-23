@@ -2,7 +2,7 @@
 
 ![truVote](https://github.com/user-attachments/assets/c575ade8-e088-420d-bd80-963e6ffdcc29)
 
-TrueVote is a secure digital voting platform designed to eliminate fraud and ensure verifiable elections. With built-in **face recognition** for identity verification and a focus on security, TrueVote provides a seamless and trustworthy voting experience. While blockchain is not currently implemented, we plan to integrate it in the future for enhanced transparency and security.
+TruVote is a secure digital voting platform designed to eliminate fraud and ensure verifiable elections. With built-in **face recognition** for identity verification and a focus on security, TruVote provides a seamless and trustworthy voting experience. While blockchain is not currently implemented, we plan to integrate it in the future for enhanced transparency and security.
 
 ## Features
 - **Secure Voter IDs**: Unique ID verification to prevent duplication and fraud.
@@ -29,7 +29,7 @@ TrueVote is a secure digital voting platform designed to eliminate fraud and ens
 - University & Student Elections
 - Online Polling and Surveys
 
-## Why TrueVote?
+## Why TruVote?
 - **Fraud Prevention**: Eliminates duplicate and fake votes.
 - **Privacy & Security**: Ensures data integrity and voter anonymity.
 - **Accessibility**: Users can vote from anywhere without risking security breaches.
@@ -40,4 +40,4 @@ TrueVote is a secure digital voting platform designed to eliminate fraud and ens
 - **Backend**: Python & Flask 
 - **AI & Biometrics**: Face recognition for identity verification
 
-TrueVote is the future of voting—secure, transparent, and built for the modern world. 🚀
+TruVote is the future of voting—secure, transparent, and built for the modern world. 🚀
