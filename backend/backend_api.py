@@ -193,7 +193,7 @@ def analysis(poll_id):
 
         # G) Generate text prompt for Gemini AI
         gemini_prompt = f"""
-        You are an AI expert in analyzing voting behavior. Given the following poll results (votes per candidate grouped by voter birth month), provide a short and insightful analysis on potential age-group influence. Do not mention the poll_id or any variable names such as (Month_5). 
+        You are an AI expert in analyzing voting behavior. Given the following poll results (votes per candidate grouped by voter birth month), provide a short and insightful analysis on potential age-group influence. Do not mention the poll_id or any variable names such as (Month_5) but talk about the options using their option_texts. 
 
         **Poll ID:** {poll_id}
         **Candidate-Birthday Vote Breakdown:** 
