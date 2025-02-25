@@ -208,8 +208,6 @@ def analysis(poll_id):
         result = client.models.generate_content(model='gemini-2.0-flash-001', contents=gemini_prompt)
         response_text = result.text
 
-        print(f"Gemini Response: {response_text}")  # Debugging statement
-
         return jsonify({"response": response_text})
     except Exception as e:
         print(f"Error: {str(e)}")  # Debugging statement
